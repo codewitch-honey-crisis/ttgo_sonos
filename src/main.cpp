@@ -69,7 +69,7 @@ static void draw_center_text(const char* text) {
     oti.font = &Ubuntu;
     oti.text = text;
     oti.transparent_background = false;
-    // 25 pixel high font
+    // 35 pixel high font
     oti.scale = oti.font->scale(35);
     // center the text
     ssize16 text_size = oti.font->measure_text(ssize16::max(),spoint16::zero(),oti.text,oti.scale);
