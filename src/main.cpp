@@ -7,6 +7,8 @@
 #include <lcd_miser.hpp>
 #include <fonts/Ubuntu.hpp>
 #include <SPIFFS.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
 #define LCD_WIDTH 135
 #define LCD_HEIGHT 240
 #define LCD_HOST VSPI
@@ -26,19 +28,21 @@ using color_t = color<typename display_t::pixel_type>;
 
 using button_1_t = button<35, 10, true>;
 using button_2_t = button<0, 10, true>;
-
+static void ensure_connected();
 static void draw_room(int index);
 static void play_pause(int index);
 static display_t dsp;
-lcd_miser<PIN_NUM_BCKL> dsp_miser;
+static lcd_miser<PIN_NUM_BCKL> dsp_miser;
 static button_1_t button_1;
 static button_2_t button_2;
-
+static HTTPClient http;
 static int speaker_index = 0;
 static int speaker_count = 0;
 static char* speaker_strings = nullptr;
 static char play_pause_url[1024];
 static char url[1024];
+static char wifi_ssid[256];
+static char wifi_pass[256];
 static void button_1_cb(bool pressed, void* state) {
     if(pressed) {
         dsp_miser.wake();
@@ -53,6 +57,11 @@ static void button_2_cb(bool pressed, void* state) {
     if(pressed) {
         dsp_miser.wake();
         play_pause(speaker_index);
+    }
+}
+static void ensure_connected() {
+    if(WiFi.status()!=WL_CONNECTED) {
+        WiFi.begin(wifi_ssid,wifi_pass);
     }
 }
 static void draw_center_text(const char* text) {
@@ -80,8 +89,13 @@ static const char* room_for_index(int index) {
 static void play_pause(int index) {
     const char* sz = room_for_index(index);
     snprintf(url,sizeof(url),play_pause_url,sz);
+    ensure_connected();
     Serial.print("Sending ");
     Serial.println(url);
+    http.begin(url);
+    http.GET();
+    http.end();
+    
 }
 static void draw_room(int index) {
     draw::filled_rectangle(dsp, dsp.bounds(), color_t::black);
@@ -121,10 +135,20 @@ void setup() {
     file.close();
     file = SPIFFS.open("/api.txt");
     s = file.readStringUntil('\n');
-    Serial.println(s);
     s.trim();
     strcpy(play_pause_url,s.c_str());
     file.close();
+    file = SPIFFS.open("/wifi.txt");
+    s = file.readStringUntil('\n');
+    s.trim();
+    strcpy(wifi_ssid,s.c_str());
+    s = file.readStringUntil('\n');
+    s.trim();
+    strcpy(wifi_pass,s.c_str());
+    file.close();
+    Serial.printf("Connecting to %s...\n",wifi_ssid);
+    WiFi.begin(wifi_ssid,wifi_pass);
+    
     draw_room(speaker_index);
 }
 void loop() {
