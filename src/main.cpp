@@ -26,8 +26,8 @@ using bus_t = tft_spi_ex<LCD_HOST, PIN_NUM_CS, PIN_NUM_MOSI, PIN_NUM_MISO, PIN_N
 using display_t = st7789<LCD_WIDTH, LCD_HEIGHT, PIN_NUM_DC, PIN_NUM_RST, -1 /* PIN_NUM_BCKL */, bus_t, 1, true, 400, 200>;
 using color_t = color<typename display_t::pixel_type>;
 
-using button_1_t = button<35, 10, true>;
-using button_2_t = button<0, 10, true>;
+using button_1_t = button<35,10, true>;
+using button_2_t = button<0,10, true>;
 static void ensure_connected();
 static void draw_room(int index);
 static void play_pause(int index);
@@ -43,22 +43,29 @@ static char play_pause_url[1024];
 static char url[1024];
 static char wifi_ssid[256];
 static char wifi_pass[256];
-static void button_1_cb(bool pressed, void* state) {
+static void button_1_on_click(bool pressed,void* state) {
+
     if(pressed) {
-        dsp_miser.wake();
-        ++speaker_index;
-        if(speaker_index>=speaker_count) {
-            speaker_index = 0;
+        if(!dsp_miser.dimmed()) {
+            ++speaker_index;
+            if(speaker_index>=speaker_count) {
+                speaker_index = 0;
+            }
+            draw_room(speaker_index);
         }
-        draw_room(speaker_index);
-    }
-}
-static void button_2_cb(bool pressed, void* state) {
-    if(pressed) {
         dsp_miser.wake();
-        play_pause(speaker_index);
+        
     }
 }
+static void button_2_on_click(bool pressed, void* state) {
+    if(pressed) {
+        if(!dsp_miser.dimmed()) {
+            play_pause(speaker_index);
+        }
+        dsp_miser.wake();
+    }
+}
+
 static void ensure_connected() {
     if(WiFi.status()!=WL_CONNECTED) {
         WiFi.begin(wifi_ssid,wifi_pass);
@@ -108,8 +115,8 @@ void setup() {
     dsp_miser.initialize();
     button_1.initialize();
     button_2.initialize();
-    button_1.callback(button_1_cb);
-    button_2.callback(button_2_cb);
+    button_1.callback(button_1_on_click);
+    button_2.callback(button_2_on_click);
     File file = SPIFFS.open("/speakers.csv");
     String s = file.readStringUntil(',');
     size_t size = 0;
