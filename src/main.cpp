@@ -1,5 +1,5 @@
 #include <Arduino.h>
-
+#include <config.h>
 #include <gfx.hpp>
 #include <htcw_button.hpp>
 #include <st7789.hpp>
@@ -10,16 +10,6 @@
 #include <SPIFFS.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-#define LCD_WIDTH 135
-#define LCD_HEIGHT 240
-#define LCD_HOST VSPI
-#define PIN_NUM_MISO -1
-#define PIN_NUM_MOSI 19
-#define PIN_NUM_CLK 18
-#define PIN_NUM_CS 5
-#define PIN_NUM_DC 16
-#define PIN_NUM_RST 23
-#define PIN_NUM_BCKL 4
 using namespace arduino;
 using namespace gfx;
 
@@ -27,8 +17,9 @@ using bus_t = tft_spi_ex<LCD_HOST, PIN_NUM_CS, PIN_NUM_MOSI, PIN_NUM_MISO, PIN_N
 using display_t = st7789<LCD_WIDTH, LCD_HEIGHT, PIN_NUM_DC, PIN_NUM_RST, -1 /* PIN_NUM_BCKL */, bus_t, 1, true, 400, 200>;
 using color_t = color<typename display_t::pixel_type>;
 
-using button_1_t = button<35,10, true>;
-using button_2_t = button<0,10, true>;
+using button_1_t = button<PIN_BUTTON_1,10, true>;
+using button_2_t = button<PIN_BUTTON_2,10, true>;
+
 static void ensure_connected();
 static void draw_room(int index);
 static void play_pause(int index);
