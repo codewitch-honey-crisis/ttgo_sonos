@@ -31,6 +31,7 @@ using button_2_t = button<0,10, true>;
 static void ensure_connected();
 static void draw_room(int index);
 static void play_pause(int index);
+static void next_track(int index);
 static display_t dsp;
 static lcd_miser<PIN_NUM_BCKL> dsp_miser;
 static button_1_t button_1;
@@ -39,14 +40,16 @@ static HTTPClient http;
 static int speaker_index = 0;
 static int speaker_count = 0;
 static char* speaker_strings = nullptr;
+static uint32_t last_press_ts = 0;
 static char play_pause_url[1024];
+static char next_track_url[1024];
 static char url[1024];
 static char wifi_ssid[256];
 static char wifi_pass[256];
 static File file;
 static void button_1_on_click(bool pressed,void* state) {
 
-    if(pressed) {
+    if(!pressed) {
         if(!dsp_miser.dimmed()) {
             ++speaker_index;
             if(speaker_index>=speaker_count) {
@@ -59,9 +62,18 @@ static void button_1_on_click(bool pressed,void* state) {
 }
 static void button_2_on_click(bool pressed, void* state) {
     if(pressed) {
-        if(!dsp_miser.dimmed()) {
+        if(last_press_ts==0) {
+            last_press_ts = millis();
+        }
+    } else {
+        if(last_press_ts+500<=millis()) {
+            if(!dsp_miser.dimmed()) {
+                next_track(speaker_index);
+            }
+        } else {
             play_pause(speaker_index);
         }
+        last_press_ts=0;
     }
     dsp_miser.wake();
 }
@@ -101,8 +113,18 @@ static void play_pause(int index) {
     Serial.println(url);
     http.begin(url);
     http.GET();
-    http.end();
-    
+    http.end();    
+}
+
+static void next_track(int index) {
+    const char* sz = room_for_index(index);
+    snprintf(url,sizeof(url),next_track_url,sz);
+    ensure_connected();
+    Serial.print("Sending ");
+    Serial.println(url);
+    http.begin(url);
+    http.GET();
+    http.end();    
 }
 static void draw_room(int index) {
     draw::filled_rectangle(dsp, dsp.bounds(), color_t::black);
@@ -144,6 +166,9 @@ void setup() {
     s = file.readStringUntil('\n');
     s.trim();
     strcpy(play_pause_url,s.c_str());
+    s = file.readStringUntil('\n');
+    s.trim();
+    strcpy(next_track_url,s.c_str());
     file.close();
     file = SPIFFS.open("/wifi.txt");
     s = file.readStringUntil('\n');
