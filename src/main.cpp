@@ -43,6 +43,7 @@ static char play_pause_url[1024];
 static char url[1024];
 static char wifi_ssid[256];
 static char wifi_pass[256];
+static File file;
 static void button_1_on_click(bool pressed,void* state) {
 
     if(pressed) {
@@ -53,17 +54,16 @@ static void button_1_on_click(bool pressed,void* state) {
             }
             draw_room(speaker_index);
         }
-        dsp_miser.wake();
-        
     }
+    dsp_miser.wake();
 }
 static void button_2_on_click(bool pressed, void* state) {
     if(pressed) {
         if(!dsp_miser.dimmed()) {
             play_pause(speaker_index);
         }
-        dsp_miser.wake();
     }
+    dsp_miser.wake();
 }
 
 static void ensure_connected() {
@@ -117,7 +117,7 @@ void setup() {
     button_2.initialize();
     button_1.callback(button_1_on_click);
     button_2.callback(button_2_on_click);
-    File file = SPIFFS.open("/speakers.csv");
+    file = SPIFFS.open("/speakers.csv");
     String s = file.readStringUntil(',');
     size_t size = 0;
     while(!s.isEmpty()) {
@@ -153,14 +153,35 @@ void setup() {
     s.trim();
     strcpy(wifi_pass,s.c_str());
     file.close();
+    if(SPIFFS.exists("/state")) {
+        file = SPIFFS.open("/state","rb");
+        file.read((uint8_t*)&speaker_index,sizeof(speaker_index));
+        file.close();
+    }
     Serial.printf("Connecting to %s...\n",wifi_ssid);
     WiFi.begin(wifi_ssid,wifi_pass);
     
     draw_room(speaker_index);
 }
+static uint32_t fade_ts=0;
 void loop() {
     
     dsp_miser.update();
     button_1.update();
     button_2.update();
+    if(dsp_miser.dimmed()) {
+        if(fade_ts==0) {
+            fade_ts = millis()+dsp_miser.timeout();
+        }
+        if(millis()>fade_ts) {
+            file = SPIFFS.open("/state","wb",true);
+            file.seek(0);
+            file.write((uint8_t*)&speaker_index,sizeof(speaker_index));
+            file.close();
+            esp_sleep_enable_ext0_wakeup((gpio_num_t)button_1_t::pin,0);
+            esp_deep_sleep_start();
+        }
+    } else {
+        fade_ts = 0;
+    }
 }
