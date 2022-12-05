@@ -157,6 +157,9 @@ void setup() {
         file = SPIFFS.open("/state","rb");
         file.read((uint8_t*)&speaker_index,sizeof(speaker_index));
         file.close();
+        if(speaker_index>=speaker_count) {
+            speaker_index = 0;
+        }
     }
     Serial.printf("Connecting to %s...\n",wifi_ssid);
     WiFi.begin(wifi_ssid,wifi_pass);
