@@ -95,7 +95,9 @@ static void draw_center_text(const char* text) {
     ssize16 text_size = oti.font->measure_text(ssize16::max(),spoint16::zero(),oti.text,oti.scale);
     srect16 text_rect = text_size.bounds();
     text_rect.center_inplace((srect16)dsp.bounds());
-    draw::text(dsp,text_rect,oti,color_t::white);
+    text_rect.offset_inplace(0,23);
+    rgb_pixel<16> bg(17>>3,17>>2,15>>3);
+    draw::text(dsp,text_rect,oti,color_t::white,bg);
 
 }
 static const char* room_for_index(int index) {
@@ -128,7 +130,8 @@ static void next_track(int index) {
     http.end();    
 }
 static void draw_room(int index) {
-    draw::filled_rectangle(dsp, dsp.bounds(), color_t::black);
+    rgb_pixel<16> bg(17>>3,17>>2,15>>3);
+    draw::filled_rectangle(dsp, dsp.bounds(), bg);
     logo.seek(0);
     draw::image(dsp,dsp.bounds(),&logo);
     const char* sz = room_for_index(index);
@@ -143,6 +146,7 @@ void setup() {
     button_1.callback(button_1_on_click);
     button_2.callback(button_2_on_click);
     file = SPIFFS.open("/speakers.csv");
+    
     String s = file.readStringUntil(',');
     size_t size = 0;
     while(!s.isEmpty()) {
