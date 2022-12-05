@@ -6,6 +6,7 @@
 #include <tft_io.hpp>
 #include <lcd_miser.hpp>
 #include <fonts/Ubuntu.hpp>
+#include <sonos.hpp>
 #include <SPIFFS.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -128,6 +129,8 @@ static void next_track(int index) {
 }
 static void draw_room(int index) {
     draw::filled_rectangle(dsp, dsp.bounds(), color_t::black);
+    sonos.seek(0);
+    draw::image(dsp,dsp.bounds(),&sonos);
     const char* sz = room_for_index(index);
     draw_center_text(sz);
 }
