@@ -14,15 +14,39 @@ using namespace arduino;
 using namespace gfx;
 
 // configure the display
-using bus_t = tft_spi_ex<LCD_HOST, PIN_NUM_CS, PIN_NUM_MOSI, PIN_NUM_MISO, PIN_NUM_CLK, SPI_MODE0,true,LCD_WIDTH*LCD_HEIGHT*2+8,2>;
-using display_t = st7789<LCD_WIDTH, LCD_HEIGHT, PIN_NUM_DC, PIN_NUM_RST, -1 /* PIN_NUM_BCKL */, bus_t, 1, true, 400, 200>;
+using bus_t = tft_spi_ex<LCD_HOST, 
+                        PIN_NUM_CS, 
+                        PIN_NUM_MOSI, 
+                        PIN_NUM_MISO, 
+                        PIN_NUM_CLK, 
+                        SPI_MODE0,
+                        true,
+                        LCD_WIDTH*LCD_HEIGHT*2+8,2>;
+
+using display_t = st7789<LCD_WIDTH,
+                        LCD_HEIGHT, 
+                        PIN_NUM_DC, 
+                        PIN_NUM_RST, 
+                        -1 /* PIN_NUM_BCKL */, 
+                        bus_t, 
+                        1, 
+                        true, 
+                        400, 
+                        200>;
 using color_t = color<typename display_t::pixel_type>;
+
+// background color for the display
+constexpr static const rgb_pixel<16> bg_color(17>>3,17>>2,15>>3);
 
 static display_t dsp;
 
 // configure the buttons
-using button_1_t = button<PIN_BUTTON_1,10, true>;
-using button_2_t = button<PIN_BUTTON_2,10, true>;
+using button_1_t = button_ex<PIN_BUTTON_1,
+                        10, 
+                        true>;
+using button_2_t = button_ex<PIN_BUTTON_2,
+                        10, 
+                        true>;
 
 static button_1_t button_1;
 static button_2_t button_2;
@@ -42,7 +66,8 @@ static HTTPClient http;
 static int speaker_index = 0;
 // number of speakers/rooms
 static int speaker_count = 0;
-// series of concatted null termed strings for speakers/rooms
+// series of concatted null 
+// termed strings for speakers/rooms
 static char* speaker_strings = nullptr;
 // last time button 2 was pressed
 static uint32_t last_press_ts = 0;
@@ -61,47 +86,31 @@ static File file;
 // begin fade timestamp
 static uint32_t fade_ts=0;
 
-static void button_1_on_click(bool pressed,void* state) {
-    // on release...
-    if(!pressed) {
-        // if we're dimming/dimmed we don't want 
-        // to actually increment
-        if(!dimmer.dimmed()) {
-            // move to the next speaker
-            ++speaker_index;
-            if(speaker_index>=speaker_count) {
-                // wrap around
-                speaker_index = 0;
-            }
-            // redraw
-            draw_room(speaker_index);
+static void button_1_on_click(void* state) {
+    // if we're dimming/dimmed we don't want 
+    // to actually increment
+    if(!dimmer.dimmed()) {
+        // move to the next speaker
+        ++speaker_index;
+        if(speaker_index>=speaker_count) {
+            // wrap around
+            speaker_index = 0;
         }
+        // redraw
+        draw_room(speaker_index);
     }
     // reset the dimmer
     dimmer.wake();
 }
-static void button_2_on_click(bool pressed, void* state) {
-    // keep track of the last time the button 
-    // was pressed
-    if(pressed) {
-        if(last_press_ts==0) {
-            last_press_ts = millis();
-        }
-    } else { // on release...
-        // if long press
-        if(last_press_ts+500<=millis()) {
-            // if not dimming
-            if(!dimmer.dimmed()) {
-                // send next track command
-                next_track(speaker_index);
-            }
-        } else { // short press
-            // send play/pause
-            play_pause(speaker_index);
-        }
-        // reset the last press
-        last_press_ts=0;
-    }
+static void button_2_on_click(void* state) {
+    // send play/pause
+    play_pause(speaker_index);
+    // reset the dimmer
+    dimmer.wake();
+}
+static void button_2_on_long_click(void* state) {
+    // send next track command
+    next_track(speaker_index);
     // reset the dimmer
     dimmer.wake();
 }
@@ -122,14 +131,16 @@ static void draw_center_text(const char* text) {
     // 35 pixel high font
     oti.scale = oti.font->scale(35);
     // center the text
-    ssize16 text_size = oti.font->measure_text(ssize16::max(),spoint16::zero(),oti.text,oti.scale);
+    ssize16 text_size = oti.font->measure_text(
+        ssize16::max(),
+        spoint16::zero(),
+        oti.text,
+        oti.scale);
     srect16 text_rect = text_size.bounds();
     text_rect.center_inplace((srect16)dsp.bounds());
     // offset by half the jpg height
     text_rect.offset_inplace(0,23);
-    // background color (pulled from MS paint)
-    rgb_pixel<16> bg(17>>3,17>>2,15>>3);
-    draw::text(dsp,text_rect,oti,color_t::white,bg);
+    draw::text(dsp,text_rect,oti,color_t::white,bg_color);
 
 }
 static const char* room_for_index(int index) {
@@ -171,10 +182,8 @@ static void next_track(int index) {
     http.end();    
 }
 static void draw_room(int index) {
-    // background pulled from MS paint
-    rgb_pixel<16> bg(17>>3,17>>2,15>>3);
     // clear the screen
-    draw::filled_rectangle(dsp, dsp.bounds(), bg);
+    draw::filled_rectangle(dsp, dsp.bounds(), bg_color);
     // jpg loading doesn't seek the stream so that
     // http streaming will work. we need to seek
     // back to the beginning to make it work
@@ -194,8 +203,9 @@ void setup() {
     button_1.initialize();
     button_2.initialize();
     // set the button callbacks
-    button_1.callback(button_1_on_click);
-    button_2.callback(button_2_on_click);
+    button_1.on_click(button_1_on_click);
+    button_2.on_click(button_2_on_click);
+    button_2.on_long_click(button_2_on_long_click);
     // parse speakers.csv into speaker_strings
     file = SPIFFS.open("/speakers.csv");
     String s = file.readStringUntil(',');
@@ -208,7 +218,9 @@ void setup() {
                 while(true);
             }
         } else {
-            speaker_strings = (char*)realloc(speaker_strings, size+s.length()+1);
+            speaker_strings = (char*)realloc(
+                speaker_strings, 
+                size+s.length()+1);
             if(speaker_strings==nullptr) {
                 Serial.println("Out of memory loading speakers");
                 while(true);
@@ -244,7 +256,9 @@ void setup() {
     // contents
     if(SPIFFS.exists("/state")) {
         file = SPIFFS.open("/state","rb");
-        file.read((uint8_t*)&speaker_index,sizeof(speaker_index));
+        file.read(
+            (uint8_t*)&speaker_index,
+            sizeof(speaker_index));
         file.close();
         // in case /state is stale relative to speakers.csv:
         if(speaker_index>=speaker_count) {
