@@ -69,8 +69,6 @@ static int speaker_count = 0;
 // series of concatted null 
 // termed strings for speakers/rooms
 static char* speaker_strings = nullptr;
-// last time button 2 was pressed
-static uint32_t last_press_ts = 0;
 // the format string url for play/pause
 static char play_pause_url[1024];
 // the format string url for the next track
