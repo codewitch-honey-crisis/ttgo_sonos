@@ -58,9 +58,7 @@ static lcd_miser<PIN_NUM_BCKL> dimmer;
 // function prototypes
 static void ensure_connected();
 static void draw_room(int index);
-static void play_pause(int index);
-static void next_track(int index);
-
+static const char* room_for_index(int index);
 // global state
 static HTTPClient http;
 // current speaker/room
@@ -108,24 +106,19 @@ static void button_1_on_click(void* state) {
     // reset the dimmer
     dimmer.wake();
 }
-
-static void button_2_on_click(void* state) {
-    // send play/pause
-    play_pause(speaker_index);
-    // reset the dimmer
-    dimmer.wake();
-}
-static void button_2_on_double_click(void* state) {
-    Serial.println("Double click!");
-    // reset the dimmer
-    dimmer.wake();
-}
-
-static void button_2_on_long_click(void* state) {
-    // send next track command
-    next_track(speaker_index);
-    // reset the dimmer
-    dimmer.wake();
+static void do_button(void* state) {
+    const char* sz = (const char*)state;
+    const char* room = room_for_index(speaker_index);
+    snprintf(url,1024,sz,room);
+    // connect if necessary
+    ensure_connected();
+    // send the command
+    Serial.print("Sending ");
+    Serial.println(url);
+    http.begin(url);
+    http.GET();
+    http.end();
+    dimmer.wake();   
 }
 
 static void ensure_connected() {
@@ -166,32 +159,6 @@ static const char* room_for_index(int index) {
     return sz;
 }
 
-static void play_pause(int index) {
-    // get the room string
-    const char* sz = room_for_index(index);
-    // format the url
-    snprintf(url,sizeof(url),play_pause_url,sz);
-    // connect if necessary
-    ensure_connected();
-    // send the command
-    Serial.print("Sending ");
-    Serial.println(url);
-    http.begin(url);
-    http.GET();
-    http.end();    
-}
-
-static void next_track(int index) {
-    // see play_pause() for how this works
-    const char* sz = room_for_index(index);
-    snprintf(url,sizeof(url),next_track_url,sz);
-    ensure_connected();
-    Serial.print("Sending ");
-    Serial.println(url);
-    http.begin(url);
-    http.GET();
-    http.end();    
-}
 static void draw_room(int index) {
     draw::wait_all_async(dsp);
     // clear the screen
@@ -211,9 +178,9 @@ void setup() {
     button_2.initialize();
     // set the button callbacks
     button_1.on_click(button_1_on_click);
-    button_2.on_click(button_2_on_click);
-    //button_2.on_double_click(button_2_on_double_click);
-    button_2.on_long_click(button_2_on_long_click);
+    button_2.on_click(do_button,play_pause_url);
+    //button_2.on_double_click(do_button,????);
+    button_2.on_long_click(do_button,next_track_url);
     // parse speakers.csv into speaker_strings
     file = SPIFFS.open("/speakers.csv");
     String s = file.readStringUntil(',');
