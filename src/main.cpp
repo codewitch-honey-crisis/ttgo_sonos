@@ -85,6 +85,10 @@ static File file;
 // begin fade timestamp
 static uint32_t fade_ts=0;
 
+using frame_buffer_t = bitmap<typename display_t::pixel_type>;
+static uint8_t frame_buffer_data[frame_buffer_t::sizeof_buffer({LCD_WIDTH,LCD_HEIGHT})];
+static frame_buffer_t frame_buffer(dsp.dimensions(),frame_buffer_data);
+
 static void button_1_on_click(void* state) {
     // if we're dimming/dimmed we don't want 
     // to actually increment
@@ -126,8 +130,6 @@ static void draw_center_text(const char* text) {
     open_text_info oti;
     oti.font = &Ubuntu;
     oti.text = text;
-    // have to do this because SDA readbacks are broken in Arduino
-    oti.transparent_background = false;
     // 35 pixel high font
     oti.scale = oti.font->scale(35);
     // center the text
@@ -137,10 +139,10 @@ static void draw_center_text(const char* text) {
         oti.text,
         oti.scale);
     srect16 text_rect = text_size.bounds();
-    text_rect.center_inplace((srect16)dsp.bounds());
+    text_rect.center_inplace((srect16)frame_buffer.bounds());
     // offset by half the jpg height
     text_rect.offset_inplace(0,23);
-    draw::text(dsp,text_rect,oti,color_t::white,bg_color);
+    draw::text(frame_buffer,text_rect,oti,color_t::white,bg_color);
 
 }
 static const char* room_for_index(int index) {
@@ -182,18 +184,14 @@ static void next_track(int index) {
     http.end();    
 }
 static void draw_room(int index) {
+    draw::wait_all_async(dsp);
     // clear the screen
-    draw::filled_rectangle(dsp, dsp.bounds(), bg_color);
-    // jpg loading doesn't seek the stream so that
-    // http streaming will work. we need to seek
-    // back to the beginning to make it work
-    // each time
-    logo.seek(0);
-    draw::image(dsp,dsp.bounds(),&logo);
+    draw::filled_rectangle(frame_buffer, frame_buffer.bounds().offset(0,48), bg_color);
     // get the room string
     const char* sz = room_for_index(index);
     // and draw it
     draw_center_text(sz);
+    draw::bitmap_async(dsp,dsp.bounds(),frame_buffer,frame_buffer.bounds());
 }
 void setup() {
     // start everything up
@@ -268,6 +266,9 @@ void setup() {
     // initial connect
     Serial.printf("Connecting to %s...\n",wifi_ssid);
     WiFi.begin(wifi_ssid,wifi_pass);
+    // draw logo to framebuffer
+    draw::image(frame_buffer,frame_buffer.bounds(),&logo);
+    
     // initial draw
     draw_room(speaker_index);
 }
