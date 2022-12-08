@@ -85,6 +85,9 @@ static File file;
 // begin fade timestamp
 static uint32_t fade_ts=0;
 
+// rather than draw directly to the display, we draw
+// to a bitmap, and then draw that to the display
+// for less flicker. Here we create the bitmap
 using frame_buffer_t = bitmap<typename display_t::pixel_type>;
 static uint8_t frame_buffer_data[frame_buffer_t::sizeof_buffer({LCD_WIDTH,LCD_HEIGHT})];
 static frame_buffer_t frame_buffer(dsp.dimensions(),frame_buffer_data);
