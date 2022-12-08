@@ -189,7 +189,7 @@ static void next_track(int index) {
 static void draw_room(int index) {
     draw::wait_all_async(dsp);
     // clear the screen
-    draw::filled_rectangle(frame_buffer, frame_buffer.bounds().offset(0,48), bg_color);
+    draw::filled_rectangle(frame_buffer, frame_buffer.bounds().offset(0,47), bg_color);
     // get the room string
     const char* sz = room_for_index(index);
     // and draw it
