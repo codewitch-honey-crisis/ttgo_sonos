@@ -35,8 +35,9 @@ using display_t = st7789<LCD_WIDTH,
                         200>;
 using color_t = color<typename display_t::pixel_type>;
 
-// background color for the display
-constexpr static const rgb_pixel<16> bg_color(17>>3,17>>2,15>>3);
+// background color for the display (24 bit, followed by 16)
+constexpr static const rgb_pixel<24> bg_color_24(17,17,15);
+constexpr static const rgb_pixel<16> bg_color = convert<rgb_pixel<24>,rgb_pixel<16>>(bg_color_24);
 
 static display_t dsp;
 
@@ -100,6 +101,7 @@ static void button_1_on_click(void* state) {
     // reset the dimmer
     dimmer.wake();
 }
+
 static void button_2_on_click(void* state) {
     // send play/pause
     play_pause(speaker_index);
