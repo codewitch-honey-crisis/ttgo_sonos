@@ -115,6 +115,12 @@ static void button_2_on_click(void* state) {
     // reset the dimmer
     dimmer.wake();
 }
+static void button_2_on_double_click(void* state) {
+    Serial.println("Double click!");
+    // reset the dimmer
+    dimmer.wake();
+}
+
 static void button_2_on_long_click(void* state) {
     // send next track command
     next_track(speaker_index);
@@ -206,6 +212,7 @@ void setup() {
     // set the button callbacks
     button_1.on_click(button_1_on_click);
     button_2.on_click(button_2_on_click);
+    //button_2.on_double_click(button_2_on_double_click);
     button_2.on_long_click(button_2_on_long_click);
     // parse speakers.csv into speaker_strings
     file = SPIFFS.open("/speakers.csv");
