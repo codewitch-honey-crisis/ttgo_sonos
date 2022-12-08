@@ -35,9 +35,9 @@ using display_t = st7789<LCD_WIDTH,
                         200>;
 using color_t = color<typename display_t::pixel_type>;
 
-// background color for the display (24 bit, followed by 16)
+// background color for the display (24 bit, followed by display's native pixel type)
 constexpr static const rgb_pixel<24> bg_color_24(17,17,15);
-constexpr static const rgb_pixel<16> bg_color = convert<rgb_pixel<24>,rgb_pixel<16>>(bg_color_24);
+constexpr static const display_t::pixel_type bg_color = convert<rgb_pixel<24>,display_t::pixel_type>(bg_color_24);
 
 static display_t dsp;
 
