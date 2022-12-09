@@ -72,6 +72,8 @@ static char* speaker_strings = nullptr;
 static char play_pause_url[1024];
 // the format string url for the next track
 static char next_track_url[1024];
+// the format string url for the previous track
+static char prev_track_url[1024];
 // temp for formatting urls
 static char url[1024];
 // the Wifi SSID
@@ -179,7 +181,7 @@ void setup() {
     // set the button callbacks
     button_1.on_click(button_1_on_click);
     button_2.on_click(do_button,play_pause_url);
-    //button_2.on_double_click(do_button,????);
+    button_2.on_double_click(do_button,prev_track_url);
     button_2.on_long_click(do_button,next_track_url);
     // parse speakers.csv into speaker_strings
     file = SPIFFS.open("/speakers.csv");
@@ -215,6 +217,9 @@ void setup() {
     s = file.readStringUntil('\n');
     s.trim();
     strcpy(next_track_url,s.c_str());
+    s = file.readStringUntil('\n');
+    s.trim();
+    strcpy(prev_track_url,s.c_str());
     file.close();
     file = SPIFFS.open("/wifi.txt");
     s = file.readStringUntil('\n');

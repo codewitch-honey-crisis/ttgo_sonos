@@ -1,2 +1,2 @@
 MySSID
-mypass
+MyPassword
