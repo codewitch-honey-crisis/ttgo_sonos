@@ -287,6 +287,7 @@ void loop() {
             file.seek(0);
             file.write((uint8_t*)&speaker_index,sizeof(speaker_index));
             file.close();
+            dsp.sleep();
             // make sure we can wake up on button_1
             esp_sleep_enable_ext0_wakeup((gpio_num_t)button_1_t::pin,0);
             // go to sleep
