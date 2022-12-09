@@ -5,7 +5,7 @@
 #include <st7789.hpp>
 #include <tft_io.hpp>
 #include <lcd_miser.hpp>
-#include <fonts/Ubuntu.hpp>
+#include <fonts/SonosFont.hpp>
 #include <logo.hpp>
 #include <SPIFFS.h>
 #include <WiFi.h>
@@ -36,7 +36,7 @@ using display_t = st7789<LCD_WIDTH,
 using color_t = color<typename display_t::pixel_type>;
 
 // background color for the display (24 bit, followed by display's native pixel type)
-constexpr static const rgb_pixel<24> bg_color_24(17,17,15);
+constexpr static const rgb_pixel<24> bg_color_24(/*R*/12,/*G*/12,/*B*/12);
 constexpr static const display_t::pixel_type bg_color = convert<rgb_pixel<24>,display_t::pixel_type>(bg_color_24);
 
 static display_t dsp;
@@ -130,7 +130,7 @@ static void ensure_connected() {
 static void draw_center_text(const char* text) {
     // set up the font
     open_text_info oti;
-    oti.font = &Ubuntu;
+    oti.font = &SonosFont;
     oti.text = text;
     // 35 pixel high font
     oti.scale = oti.font->scale(35);
