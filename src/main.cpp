@@ -59,6 +59,7 @@ static lcd_miser<PIN_NUM_BCKL> dimmer;
 static void ensure_connected();
 static void draw_room(int index);
 static const char* room_for_index(int index);
+static void do_request(int index,const char* url_fmt);
 // global state
 static HTTPClient http;
 // current speaker/room
@@ -92,15 +93,15 @@ using frame_buffer_t = bitmap<typename display_t::pixel_type>;
 static uint8_t frame_buffer_data[frame_buffer_t::sizeof_buffer({LCD_WIDTH,LCD_HEIGHT})];
 static frame_buffer_t frame_buffer(dsp.dimensions(),frame_buffer_data);
 
-static void button_1_on_click(void* state) {
+static void button_1_on_click(int clicks,void* state) {
     // if we're dimming/dimmed we don't want 
     // to actually increment
     if(!dimmer.dimmed()) {
         // move to the next speaker
-        ++speaker_index;
-        if(speaker_index>=speaker_count) {
+        speaker_index+=clicks;
+        while(speaker_index>=speaker_count) {
             // wrap around
-            speaker_index = 0;
+            speaker_index -= clicks;
         }
         // redraw
         draw_room(speaker_index);
@@ -108,10 +109,19 @@ static void button_1_on_click(void* state) {
     // reset the dimmer
     dimmer.wake();
 }
-static void do_button(void* state) {
-    const char* sz = (const char*)state;
+static void button_2_on_click(int clicks,void* state) {
+    do_request(speaker_index,clicks==1?play_pause_url:prev_track_url);
+    // reset the dimmer
+    dimmer.wake();
+}
+static void button_2_on_long_click(void* state) {
+    do_request(speaker_index,next_track_url);
+    // reset the dimmer
+    dimmer.wake();
+}
+static void do_request(int speaker_index, const char* url_fmt) {
     const char* room = room_for_index(speaker_index);
-    snprintf(url,1024,sz,room);
+    snprintf(url,1024,url_fmt,room);
     // connect if necessary
     ensure_connected();
     // send the command
@@ -180,9 +190,8 @@ void setup() {
     button_2.initialize();
     // set the button callbacks
     button_1.on_click(button_1_on_click);
-    button_2.on_click(do_button,play_pause_url);
-    button_2.on_double_click(do_button,prev_track_url);
-    button_2.on_long_click(do_button,next_track_url);
+    button_2.on_click(button_2_on_click);
+    button_2.on_long_click(button_2_on_long_click);
     // parse speakers.csv into speaker_strings
     file = SPIFFS.open("/speakers.csv");
     String s = file.readStringUntil(',');
