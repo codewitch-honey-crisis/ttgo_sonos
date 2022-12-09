@@ -130,7 +130,6 @@ static void do_request(int speaker_index, const char* url_fmt) {
     http.begin(url);
     http.GET();
     http.end();
-    dimmer.wake();   
 }
 
 static void ensure_connected() {
