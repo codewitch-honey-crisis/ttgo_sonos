@@ -101,7 +101,7 @@ static void button_1_on_click(int clicks,void* state) {
         speaker_index+=clicks;
         while(speaker_index>=speaker_count) {
             // wrap around
-            speaker_index -= clicks;
+            speaker_index -= speaker_count;
         }
         // redraw
         draw_room(speaker_index);
