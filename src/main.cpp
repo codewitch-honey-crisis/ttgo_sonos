@@ -269,32 +269,18 @@ void loop() {
     button_1.update();
     button_2.update();
 
-    // the dimmer reports dimmed() as soon as the screen
-    // starts dimming but we don't want to sleep until
-    // it's finished. to facilitate this we wait until
-    // the dimmer is finished by timing it in sync
-
-    // if we're dimming/dimmed
-    if(dimmer.dimmed()) {
-        // store the fade timestamp to start
-        if(fade_ts==0) {
-            fade_ts = millis()+dimmer.fade_step()*256;
-        }
-        // if the fade is finished
-        if(millis()>fade_ts) {
-            // write the state
-            file = SPIFFS.open("/state","wb",true);
-            file.seek(0);
-            file.write((uint8_t*)&speaker_index,sizeof(speaker_index));
-            file.close();
-            dsp.sleep();
-            // make sure we can wake up on button_1
-            esp_sleep_enable_ext0_wakeup((gpio_num_t)button_1_t::pin,0);
-            // go to sleep
-            esp_deep_sleep_start();
-        }
-    } else {
-        // reset the fade timestamp
-        fade_ts = 0;
-    }
+    // if we're faded all the way, sleep
+    if(dimmer.faded()) {
+        // write the state
+        file = SPIFFS.open("/state","wb",true);
+        file.seek(0);
+        file.write((uint8_t*)&speaker_index,sizeof(speaker_index));
+        file.close();
+        dsp.sleep();
+        // make sure we can wake up on button_1
+        esp_sleep_enable_ext0_wakeup((gpio_num_t)button_1_t::pin,0);
+        // go to sleep
+        esp_deep_sleep_start();
+        
+    } 
 }
