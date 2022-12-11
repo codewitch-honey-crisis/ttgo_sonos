@@ -172,11 +172,13 @@ static const char* room_for_index(int index) {
 
 static void draw_room(int index) {
     draw::wait_all_async(dsp);
-    // clear the screen
+    // clear the frame buffer
     draw::filled_rectangle(frame_buffer, frame_buffer.bounds(), bg_color);
     // get the room string
     const char* sz = room_for_index(index);
-    // and draw it
+    // and draw it. Note we offset it by the jpg height
+    // since we're only drawing the lower portion of
+    // the screen
     draw_center_text(sz);
     draw::bitmap_async(dsp,dsp.bounds().offset(0,47).crop(dsp.bounds()),frame_buffer,frame_buffer.bounds());
 }
@@ -256,7 +258,7 @@ void setup() {
     // initial connect
     Serial.printf("Connecting to %s...\n",wifi_ssid);
     WiFi.begin(wifi_ssid,wifi_pass);
-    // draw logo to framebuffer
+    // draw logo to screen
     draw::image(dsp,dsp.bounds(),&logo);
     
     // initial draw
