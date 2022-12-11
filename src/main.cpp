@@ -90,8 +90,10 @@ static uint32_t fade_ts=0;
 // to a bitmap, and then draw that to the display
 // for less flicker. Here we create the bitmap
 using frame_buffer_t = bitmap<typename display_t::pixel_type>;
-static uint8_t frame_buffer_data[frame_buffer_t::sizeof_buffer({LCD_WIDTH,LCD_HEIGHT})];
-static frame_buffer_t frame_buffer(dsp.dimensions(),frame_buffer_data);
+// reversed due to LCD orientation:
+constexpr static const size16 frame_buffer_size({LCD_HEIGHT,LCD_WIDTH-47});
+static uint8_t frame_buffer_data[frame_buffer_t::sizeof_buffer(frame_buffer_size)];
+static frame_buffer_t frame_buffer(frame_buffer_size,frame_buffer_data);
 
 static void button_1_on_click(int clicks,void* state) {
     // if we're dimming/dimmed we don't want 
@@ -153,8 +155,6 @@ static void draw_center_text(const char* text) {
         oti.scale);
     srect16 text_rect = text_size.bounds();
     text_rect.center_inplace((srect16)frame_buffer.bounds());
-    // offset by half the jpg height
-    text_rect.offset_inplace(0,23);
     draw::text(frame_buffer,text_rect,oti,color_t::white,bg_color);
 
 }
@@ -173,12 +173,12 @@ static const char* room_for_index(int index) {
 static void draw_room(int index) {
     draw::wait_all_async(dsp);
     // clear the screen
-    draw::filled_rectangle(frame_buffer, frame_buffer.bounds().offset(0,47), bg_color);
+    draw::filled_rectangle(frame_buffer, frame_buffer.bounds(), bg_color);
     // get the room string
     const char* sz = room_for_index(index);
     // and draw it
     draw_center_text(sz);
-    draw::bitmap_async(dsp,dsp.bounds(),frame_buffer,frame_buffer.bounds());
+    draw::bitmap_async(dsp,dsp.bounds().offset(0,47).crop(dsp.bounds()),frame_buffer,frame_buffer.bounds());
 }
 void setup() {
     // start everything up
@@ -257,7 +257,7 @@ void setup() {
     Serial.printf("Connecting to %s...\n",wifi_ssid);
     WiFi.begin(wifi_ssid,wifi_pass);
     // draw logo to framebuffer
-    draw::image(frame_buffer,frame_buffer.bounds(),&logo);
+    draw::image(dsp,dsp.bounds(),&logo);
     
     // initial draw
     draw_room(speaker_index);
