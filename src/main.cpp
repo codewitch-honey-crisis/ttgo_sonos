@@ -278,7 +278,7 @@ void loop() {
     if(dimmer.dimmed()) {
         // store the fade timestamp to start
         if(fade_ts==0) {
-            fade_ts = millis()+dimmer.timeout();
+            fade_ts = millis()+dimmer.fade_step()*256;
         }
         // if the fade is finished
         if(millis()>fade_ts) {
