@@ -129,8 +129,7 @@ static void button_2_on_long_click(void* state) {
     // reset the dimmer
     dimmer.wake();
 }
-
-char *url_encode(const char *str, char *enc){
+static char *url_encode(const char *str, char *enc){
 
     for (; *str; str++){
         int i = *str;
