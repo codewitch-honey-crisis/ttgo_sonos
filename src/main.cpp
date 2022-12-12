@@ -59,6 +59,7 @@ static lcd_miser<PIN_NUM_BCKL> dimmer;
 static void ensure_connected();
 static void draw_room(int index);
 static const char* room_for_index(int index);
+static const char* string_for_index(const char* strings,int index);
 static void do_request(int index,const char* url_fmt);
 // global state
 static HTTPClient http;
@@ -69,12 +70,10 @@ static int speaker_count = 0;
 // series of concatted null 
 // termed strings for speakers/rooms
 static char* speaker_strings = nullptr;
-// the format string url for play/pause
-static char play_pause_url[1024];
-// the format string url for the next track
-static char next_track_url[1024];
-// the format string url for the previous track
-static char prev_track_url[1024];
+// how many urls are in api txt
+static int format_url_count = 0;
+// the format string urls
+static char* format_urls = nullptr;
 // temp for formatting urls
 static char url[1024];
 // the Wifi SSID
@@ -112,17 +111,25 @@ static void button_1_on_click(int clicks,void* state) {
     dimmer.wake();
 }
 static void button_2_on_click(int clicks,void* state) {
-    do_request(speaker_index,clicks==1?play_pause_url:prev_track_url);
+    if(clicks<format_url_count) {
+        const char* fmt_url = string_for_index(format_urls, clicks);
+        if(fmt_url!=nullptr) {
+            do_request(speaker_index, fmt_url);
+        }
+    }
     // reset the dimmer
     dimmer.wake();
 }
 static void button_2_on_long_click(void* state) {
-    do_request(speaker_index,next_track_url);
+    // play the first URL
+    if(format_urls!=nullptr) {
+        do_request(speaker_index,format_urls);
+    }
     // reset the dimmer
     dimmer.wake();
 }
-static void do_request(int speaker_index, const char* url_fmt) {
-    const char* room = room_for_index(speaker_index);
+static void do_request(int index, const char* url_fmt) {
+    const char* room = string_for_index(speaker_strings, index);
     snprintf(url,1024,url_fmt,room);
     // connect if necessary
     ensure_connected();
@@ -158,12 +165,15 @@ static void draw_center_text(const char* text) {
     draw::text(frame_buffer,text_rect,oti,color_t::white,bg_color);
 
 }
-static const char* room_for_index(int index) {
+static const char* string_for_index(const char* strings,int index) {
+    if(strings==nullptr) {
+        return nullptr;
+    }
     // move through the string list 
     // a string at a time until the
     // index is hit, and return
     // the pointer when it is
-    const char* sz = speaker_strings;
+    const char* sz = strings;
     for(int i = 0;i<index;++i) {
         sz = sz+strlen(sz)+1;
     }
@@ -175,7 +185,7 @@ static void draw_room(int index) {
     // clear the frame buffer
     draw::filled_rectangle(frame_buffer, frame_buffer.bounds(), bg_color);
     // get the room string
-    const char* sz = room_for_index(index);
+    const char* sz = string_for_index(speaker_strings, index);
     // and draw it. Note we offset it by the jpg height
     // since we're only drawing the lower portion of
     // the screen
@@ -220,16 +230,32 @@ void setup() {
     }
     file.close();
     // parse api.txt into our url format strings
+    size = 0;
     file = SPIFFS.open("/api.txt");
-    s = file.readStringUntil('\n');
+    s=file.readStringUntil('\n');
     s.trim();
-    strcpy(play_pause_url,s.c_str());
-    s = file.readStringUntil('\n');
-    s.trim();
-    strcpy(next_track_url,s.c_str());
-    s = file.readStringUntil('\n');
-    s.trim();
-    strcpy(prev_track_url,s.c_str());
+    while(!s.isEmpty()) {
+        if(format_urls==nullptr) {
+            format_urls = (char*)malloc(s.length()+1);
+            if(format_urls==nullptr) {
+                Serial.println("Out of memory loading API urls (malloc)");
+                while(true);
+            }
+        } else {
+            format_urls = (char*)realloc(
+                format_urls, 
+                size+s.length()+1);
+            if(format_urls==nullptr) {
+                Serial.println("Out of memory loading API urls");
+                while(true);
+            }
+        }
+        ++format_url_count;
+        strcpy(format_urls+size,s.c_str());
+        size+=s.length()+1;
+        s = file.readStringUntil('\n');
+        s.trim();
+    }
     file.close();
     file = SPIFFS.open("/wifi.txt");
     s = file.readStringUntil('\n');
