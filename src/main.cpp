@@ -75,8 +75,8 @@ static int format_url_count = 0;
 // the format string urls
 static char* format_urls = nullptr;
 // temp for formatting urls
-static char url1[1024];
-static char url2[1024];
+static char url[1024];
+static char url_encoded[1024];
 // the Wifi SSID
 static char wifi_ssid[256];
 // the Wifi password
@@ -133,7 +133,7 @@ static char *url_encode(const char *str, char *enc){
 
     for (; *str; str++){
         int i = *str;
-        if(isalnum(i)|| i == '~' || i == '-' || i == '.' || i == '_' || i==':' || i=='/') {
+        if(isalnum(i)|| i == '~' || i == '-' || i == '.' || i == '_') {
             *enc=*str;
         } else {
             sprintf( enc, "%%%02X", *str);
@@ -145,14 +145,14 @@ static char *url_encode(const char *str, char *enc){
 }
 static void do_request(int index, const char* url_fmt) {
     const char* room = string_for_index(speaker_strings, index);
-    snprintf(url1,1024,url_fmt,room);
-    url_encode(url1,url2);
+    url_encode(room,url_encoded);
+    snprintf(url,1024,url_fmt,url_encoded);
     // connect if necessary
     ensure_connected();
     // send the command
     Serial.print("Sending ");
-    Serial.println(url2);
-    http.begin(url2);
+    Serial.println(url);
+    http.begin(url);
     http.GET();
     http.end();
 }
