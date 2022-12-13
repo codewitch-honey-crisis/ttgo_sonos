@@ -164,7 +164,9 @@ static void do_request(int index, const char* url_fmt) {
 static void ensure_connected() {
     // if not connected, reconnect
     if(WiFi.status()!=WL_CONNECTED) {
+        Serial.printf("Connecting to %s...\n",wifi_ssid);
         WiFi.begin(wifi_ssid,wifi_pass);
+        Serial.println("Connected.");
     }
 }
 static void draw_center_text(const char* text) {
@@ -305,10 +307,6 @@ void setup() {
             speaker_index = 0;
         }
     }
-    // initial connect
-    Serial.printf("Connecting to %s...\n",wifi_ssid);
-    WiFi.begin(wifi_ssid,wifi_pass);
-    Serial.println("Connected.");
     // draw logo to screen
     draw::image(dsp,dsp.bounds(),&logo);
     // clear the remainder
