@@ -61,6 +61,10 @@ static void draw_room(int index);
 static const char* room_for_index(int index);
 static const char* string_for_index(const char* strings,int index);
 static void do_request(int index,const char* url_fmt);
+
+// font
+static const open_font& speaker_font = SonosFont;
+static const uint16_t speaker_font_height = 35;
 // global state
 static HTTPClient http;
 // current speaker/room
@@ -91,7 +95,7 @@ static uint32_t fade_ts=0;
 // for less flicker. Here we create the bitmap
 using frame_buffer_t = bitmap<typename display_t::pixel_type>;
 // reversed due to LCD orientation:
-constexpr static const size16 frame_buffer_size({LCD_HEIGHT,LCD_WIDTH-47});
+constexpr static const size16 frame_buffer_size({LCD_HEIGHT,speaker_font_height});
 static uint8_t frame_buffer_data[frame_buffer_t::sizeof_buffer(frame_buffer_size)];
 static frame_buffer_t frame_buffer(frame_buffer_size,frame_buffer_data);
 
@@ -166,10 +170,10 @@ static void ensure_connected() {
 static void draw_center_text(const char* text) {
     // set up the font
     open_text_info oti;
-    oti.font = &SonosFont;
+    oti.font = &speaker_font;
     oti.text = text;
     // 35 pixel high font
-    oti.scale = oti.font->scale(35);
+    oti.scale = oti.font->scale(speaker_font_height);
     // center the text
     ssize16 text_size = oti.font->measure_text(
         ssize16::max(),
@@ -177,7 +181,7 @@ static void draw_center_text(const char* text) {
         oti.text,
         oti.scale);
     srect16 text_rect = text_size.bounds();
-    text_rect.center_inplace((srect16)frame_buffer.bounds());
+    text_rect.center_horizontal_inplace((srect16)frame_buffer.bounds());
     draw::text(frame_buffer,text_rect,oti,color_t::white,bg_color);
 
 }
@@ -206,9 +210,14 @@ static void draw_room(int index) {
     // since we're only drawing the lower portion of
     // the screen
     draw_center_text(sz);
-    draw::bitmap_async(dsp,dsp.bounds().offset(0,47).crop(dsp.bounds()),frame_buffer,frame_buffer.bounds());
+    srect16 bmp_rect(0,0,dsp.dimensions().width-1,speaker_font_height-1);
+    bmp_rect.center_vertical_inplace((srect16)dsp.bounds());
+    bmp_rect.offset_inplace(0,23);
+    draw::bitmap_async(dsp,bmp_rect,frame_buffer,frame_buffer.bounds());
 }
 void setup() {
+    char *sz = (char*)malloc(0);
+    sz = strchr("",1);
     // start everything up
     Serial.begin(115200);
     SPIFFS.begin();
@@ -303,6 +312,8 @@ void setup() {
     Serial.println("Connected.");
     // draw logo to screen
     draw::image(dsp,dsp.bounds(),&logo);
+    // clear the remainder
+    draw::filled_rectangle(dsp,dsp.bounds().offset(0,47),bg_color);
     
     // initial draw
     draw_room(speaker_index);
