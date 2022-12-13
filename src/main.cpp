@@ -328,9 +328,6 @@ void setup() {
         draw::filled_rectangle(dsp,outr[i],bg_color);
     }
     
-    
-    
-    
     // initial draw
     draw_room(speaker_index);
 }
