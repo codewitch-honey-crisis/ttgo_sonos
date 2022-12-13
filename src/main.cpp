@@ -206,9 +206,7 @@ static void draw_room(int index) {
     frame_buffer.fill(frame_buffer.bounds(), bg_color);
     // get the room string
     const char* sz = string_for_index(speaker_strings, index);
-    // and draw it. Note we offset it by the jpg height
-    // since we're only drawing the lower portion of
-    // the screen
+    // and draw it. Note we are only drawing the text region
     draw_center_text(sz);
     srect16 bmp_rect(0,0,frame_buffer.dimensions().width-1,speaker_font_height-1);
     bmp_rect.center_vertical_inplace((srect16)dsp.bounds());
