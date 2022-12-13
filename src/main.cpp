@@ -203,14 +203,14 @@ static const char* string_for_index(const char* strings,int index) {
 static void draw_room(int index) {
     draw::wait_all_async(dsp);
     // clear the frame buffer
-    draw::filled_rectangle(frame_buffer, frame_buffer.bounds(), bg_color);
+    frame_buffer.fill(frame_buffer.bounds(), bg_color);
     // get the room string
     const char* sz = string_for_index(speaker_strings, index);
     // and draw it. Note we offset it by the jpg height
     // since we're only drawing the lower portion of
     // the screen
     draw_center_text(sz);
-    srect16 bmp_rect(0,0,dsp.dimensions().width-1,speaker_font_height-1);
+    srect16 bmp_rect(0,0,frame_buffer.dimensions().width-1,speaker_font_height-1);
     bmp_rect.center_vertical_inplace((srect16)dsp.bounds());
     bmp_rect.offset_inplace(0,23);
     draw::bitmap_async(dsp,bmp_rect,frame_buffer,frame_buffer.bounds());
