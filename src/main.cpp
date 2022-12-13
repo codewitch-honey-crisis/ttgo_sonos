@@ -282,6 +282,7 @@ void setup() {
         s.trim();
     }
     file.close();
+    // parse wifi.txt
     file = SPIFFS.open("/wifi.txt");
     s = file.readStringUntil('\n');
     s.trim();
@@ -313,7 +314,22 @@ void setup() {
     // draw logo to screen
     draw::image(dsp,dsp.bounds(),&logo);
     // clear the remainder
-    draw::filled_rectangle(dsp,dsp.bounds().offset(0,47),bg_color);
+    // split the remaining rect by the 
+    // rect of the text area, and fill those
+    rect16 scrr = dsp.bounds().offset(0,47).crop(dsp.bounds());
+    rect16 tr(scrr.x1,0,scrr.x2,speaker_font_height-1);
+    tr.center_vertical_inplace(dsp.bounds());
+    tr.offset_inplace(0,23);
+    rect16 outr[4];
+    size_t rc = scrr.split(tr,4,outr);
+    // we're only drawing part of the screen
+    // we don't draw later
+    for(int i = 0;i<rc;++i) {
+        draw::filled_rectangle(dsp,outr[i],bg_color);
+    }
+    
+    
+    
     
     // initial draw
     draw_room(speaker_index);
