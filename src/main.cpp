@@ -312,7 +312,7 @@ void setup() {
     // clear the remainder
     // split the remaining rect by the 
     // rect of the text area, and fill those
-    const rect16 scrr = dsp.bounds();
+    rect16 scrr = dsp.bounds().offset(0,47).crop(dsp.bounds());
     rect16 tr(scrr.x1,0,scrr.x2,speaker_font_height-1);
     tr.center_vertical_inplace(dsp.bounds());
     tr.offset_inplace(0,23);
