@@ -307,6 +307,10 @@ void setup() {
             speaker_index = 0;
         }
     }
+    // initial connect
+    Serial.printf("Connecting to %s...\n",wifi_ssid);
+    WiFi.begin(wifi_ssid,wifi_pass);
+    Serial.println("Connected.");
     // draw logo to screen
     draw::image(dsp,dsp.bounds(),&logo);
     // clear the remainder
