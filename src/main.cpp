@@ -166,6 +166,9 @@ static void ensure_connected() {
     if(WiFi.status()!=WL_CONNECTED) {
         Serial.printf("Connecting to %s...\n",wifi_ssid);
         WiFi.begin(wifi_ssid,wifi_pass);
+        while(WiFi.status()!=WL_CONNECTED) {
+            delay(10);
+        }
         Serial.println("Connected.");
     }
 }
@@ -308,9 +311,7 @@ void setup() {
         }
     }
     // initial connect
-    Serial.printf("Connecting to %s...\n",wifi_ssid);
-    WiFi.begin(wifi_ssid,wifi_pass);
-    Serial.println("Connected.");
+    ensure_connected();
     // draw logo to screen
     draw::image(dsp,dsp.bounds(),&logo);
     // clear the remainder
