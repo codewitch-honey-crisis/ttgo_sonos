@@ -310,8 +310,6 @@ void setup() {
             speaker_index = 0;
         }
     }
-    // initial connect
-    ensure_connected();
     // draw logo to screen
     draw::image(dsp,dsp.bounds(),&logo);
     // clear the remainder
