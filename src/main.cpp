@@ -90,7 +90,7 @@ static void button_b_on_long_click(void* state) {
     // reset the dimmer
     dimmer.wake();
 }
-static char *url_encode(const char *str, char *enc){
+static void url_encode(const char *str, char *enc){
 
     for (; *str; str++){
         int i = *str;
@@ -101,8 +101,6 @@ static char *url_encode(const char *str, char *enc){
         }
         while (*++enc);
     }
-
-    return( enc);
 }
 static void do_request(int index, const char* url_fmt) {
     const char* room = string_for_index(speaker_strings, index);
