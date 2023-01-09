@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <ttgo.hpp>
 #include <config.h>
-#include <tft_io.hpp>
 #include <fonts/SonosFont.hpp>
 #include <logo.hpp>
 #include <SPIFFS.h>
