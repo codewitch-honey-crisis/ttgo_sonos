@@ -1,59 +1,16 @@
 #include <Arduino.h>
+#include <ttgo.hpp>
 #include <config.h>
-#include <gfx.hpp>
-#include <htcw_button.hpp>
-#include <st7789.hpp>
 #include <tft_io.hpp>
-#include <lcd_miser.hpp>
 #include <fonts/SonosFont.hpp>
 #include <logo.hpp>
 #include <SPIFFS.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-using namespace arduino;
-using namespace gfx;
-
-// configure the display
-using bus_t = tft_spi_ex<LCD_HOST, 
-                        PIN_NUM_CS, 
-                        PIN_NUM_MOSI, 
-                        PIN_NUM_MISO, 
-                        PIN_NUM_CLK, 
-                        SPI_MODE0,
-                        true,
-                        LCD_WIDTH*LCD_HEIGHT*2+8,2>;
-
-using display_t = st7789<LCD_WIDTH,
-                        LCD_HEIGHT, 
-                        PIN_NUM_DC, 
-                        PIN_NUM_RST, 
-                        -1 /* PIN_NUM_BCKL */, 
-                        bus_t, 
-                        1, 
-                        true, 
-                        400, 
-                        200>;
-using color_t = color<typename display_t::pixel_type>;
 
 // background color for the display (24 bit, followed by display's native pixel type)
 constexpr static const rgb_pixel<24> bg_color_24(/*R*/12,/*G*/12,/*B*/12);
-constexpr static const display_t::pixel_type bg_color = convert<rgb_pixel<24>,display_t::pixel_type>(bg_color_24);
-
-static display_t dsp;
-
-// configure the buttons
-using button_1_t = button_ex<PIN_BUTTON_1,
-                        10, 
-                        true>;
-using button_2_t = button_ex<PIN_BUTTON_2,
-                        10, 
-                        true>;
-
-static button_1_t button_1;
-static button_2_t button_2;
-
-// configure the backlight manager
-static lcd_miser<PIN_NUM_BCKL> dimmer;
+constexpr static const lcd_t::pixel_type bg_color = convert<rgb_pixel<24>,lcd_t::pixel_type>(bg_color_24);
 
 // function prototypes
 static void ensure_connected();
@@ -93,13 +50,13 @@ static uint32_t fade_ts=0;
 // rather than draw directly to the display, we draw
 // to a bitmap, and then draw that to the display
 // for less flicker. Here we create the bitmap
-using frame_buffer_t = bitmap<typename display_t::pixel_type>;
+using frame_buffer_t = bitmap<typename lcd_t::pixel_type>;
 // reversed due to LCD orientation:
-constexpr static const size16 frame_buffer_size({LCD_HEIGHT,speaker_font_height});
+constexpr static const size16 frame_buffer_size({lcd_t::base_height,speaker_font_height});
 static uint8_t frame_buffer_data[frame_buffer_t::sizeof_buffer(frame_buffer_size)];
 static frame_buffer_t frame_buffer(frame_buffer_size,frame_buffer_data);
 
-static void button_1_on_click(int clicks,void* state) {
+static void button_a_on_click(int clicks,void* state) {
     // if we're dimming/dimmed we don't want 
     // to actually increment
     if(!dimmer.dimmed()) {
@@ -115,7 +72,7 @@ static void button_1_on_click(int clicks,void* state) {
     // reset the dimmer
     dimmer.wake();
 }
-static void button_2_on_click(int clicks,void* state) {
+static void button_b_on_click(int clicks,void* state) {
     if(clicks<format_url_count) {
         const char* fmt_url = string_for_index(format_urls, clicks);
         if(fmt_url!=nullptr) {
@@ -125,7 +82,7 @@ static void button_2_on_click(int clicks,void* state) {
     // reset the dimmer
     dimmer.wake();
 }
-static void button_2_on_long_click(void* state) {
+static void button_b_on_long_click(void* state) {
     // play the first URL
     if(format_urls!=nullptr) {
         do_request(speaker_index,format_urls);
@@ -206,7 +163,7 @@ static const char* string_for_index(const char* strings,int index) {
 }
 
 static void draw_room(int index) {
-    draw::wait_all_async(dsp);
+    draw::wait_all_async(lcd);
     // clear the frame buffer
     frame_buffer.fill(frame_buffer.bounds(), bg_color);
     // get the room string
@@ -214,23 +171,21 @@ static void draw_room(int index) {
     // and draw it. Note we are only drawing the text region
     draw_center_text(sz);
     srect16 bmp_rect(0,0,frame_buffer.dimensions().width-1,speaker_font_height-1);
-    bmp_rect.center_vertical_inplace((srect16)dsp.bounds());
+    bmp_rect.center_vertical_inplace((srect16)lcd.bounds());
     bmp_rect.offset_inplace(0,23);
-    draw::bitmap_async(dsp,bmp_rect,frame_buffer,frame_buffer.bounds());
+    draw::bitmap_async(lcd,bmp_rect,frame_buffer,frame_buffer.bounds());
 }
 void setup() {
     char *sz = (char*)malloc(0);
     sz = strchr("",1);
     // start everything up
     Serial.begin(115200);
+    ttgo_initialize();
     SPIFFS.begin();
-    dimmer.initialize();
-    button_1.initialize();
-    button_2.initialize();
     // set the button callbacks
-    button_1.on_click(button_1_on_click);
-    button_2.on_click(button_2_on_click);
-    button_2.on_long_click(button_2_on_long_click);
+    button_b.on_click(button_b_on_click);
+    button_b.on_long_click(button_b_on_long_click);
+    button_a.on_click(button_a_on_click);
     // parse speakers.csv into speaker_strings
     file = SPIFFS.open("/speakers.csv");
     String s = file.readStringUntil(',');
@@ -311,20 +266,20 @@ void setup() {
         }
     }
     // draw logo to screen
-    draw::image(dsp,dsp.bounds(),&logo);
+    draw::image(lcd,lcd.bounds(),&logo);
     // clear the remainder
     // split the remaining rect by the 
     // rect of the text area, and fill those
-    rect16 scrr = dsp.bounds().offset(0,47).crop(dsp.bounds());
+    rect16 scrr = lcd.bounds().offset(0,47).crop(lcd.bounds());
     rect16 tr(scrr.x1,0,scrr.x2,speaker_font_height-1);
-    tr.center_vertical_inplace(dsp.bounds());
+    tr.center_vertical_inplace(lcd.bounds());
     tr.offset_inplace(0,23);
     rect16 outr[4];
     size_t rc = scrr.split(tr,4,outr);
     // we're only drawing part of the screen
     // we don't draw later
     for(int i = 0;i<rc;++i) {
-        draw::filled_rectangle(dsp,outr[i],bg_color);
+        draw::filled_rectangle(lcd,outr[i],bg_color);
     }
     
     // initial draw
@@ -334,8 +289,8 @@ void setup() {
 void loop() {
     // pump all our objects
     dimmer.update();
-    button_1.update();
-    button_2.update();
+    button_a.update();
+    button_b.update();
 
     // if we're faded all the way, sleep
     if(dimmer.faded()) {
@@ -344,9 +299,9 @@ void loop() {
         file.seek(0);
         file.write((uint8_t*)&speaker_index,sizeof(speaker_index));
         file.close();
-        dsp.sleep();
-        // make sure we can wake up on button_1
-        esp_sleep_enable_ext0_wakeup((gpio_num_t)button_1_t::pin,0);
+        lcd.sleep();
+        // make sure we can wake up on button_a
+        esp_sleep_enable_ext0_wakeup((gpio_num_t)button_a_t::pin,0);
         // go to sleep
         esp_deep_sleep_start();
         
